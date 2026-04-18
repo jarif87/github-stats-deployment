@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 import os
+import threading
+import time
+import requests
 from dotenv import load_dotenv
 from github_client import GitHubClient
 from trophy_calculator import calculate_trophies
@@ -31,6 +34,21 @@ Config.validate()
 
 BASE_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+def keep_alive():
+    time.sleep(60)
+    while True:
+        try:
+            time.sleep(30)
+            requests.get("https://github-stats-deployment.onrender.com/themes", timeout=10)
+            print("✓ Keep-alive ping sent")
+        except Exception as e:
+            print(f"✗ Keep-alive ping failed: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    threading.Thread(target=keep_alive, daemon=True).start()
+    print("✓ Keep-alive thread started")
 
 @app.get("/")
 async def root():
@@ -69,14 +87,11 @@ async def github_stats(
         user_stats = client.get_user_stats(username)
         selected_theme = get_theme(theme)
         hidden = [x.strip() for x in hide.split(",") if x.strip()]
-        
         svg = generate_stats_card(username, user_stats, selected_theme, hidden)
-        
         return Response(content=svg, media_type="image/svg+xml", headers={
             "Cache-Control": "public, max-age=3600",
             "Content-Type": "image/svg+xml"
         })
-        
     except Exception as e:
         from svg_generators.stats_card import generate_error_svg
         return Response(content=generate_error_svg(str(e)), media_type="image/svg+xml")
@@ -94,13 +109,10 @@ async def languages_chart(
     try:
         all_languages = client.get_top_languages(username, include_all=True)
         selected_theme = get_theme(theme)
-        
         svg = generate_languages_chart(username, all_languages, selected_theme, layout, top, animated)
-        
         return Response(content=svg, media_type="image/svg+xml", headers={
             "Cache-Control": "public, max-age=3600"
         })
-        
     except Exception as e:
         error_svg = f'''<svg width="600" height="200">
             <rect width="600" height="200" fill="#1a1a2e" rx="16"/>
@@ -121,13 +133,10 @@ async def trophies(
         stats = client.get_user_stats(username)
         trophies_data = calculate_trophies(stats)
         selected_theme = get_theme(theme)
-        
         svg = generate_trophies_display(username, trophies_data, selected_theme, columns, style)
-        
         return Response(content=svg, media_type="image/svg+xml", headers={
             "Cache-Control": "public, max-age=3600"
         })
-        
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
@@ -138,7 +147,6 @@ async def dashboard(
     theme: str = Query("midnight", enum=list(THEMES.keys()))
 ):
     selected_theme = get_theme(theme)
-    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "username": username,
