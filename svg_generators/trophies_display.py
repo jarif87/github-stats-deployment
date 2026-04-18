@@ -5,8 +5,8 @@ def generate_trophies_display(username: str, trophies: list, theme: dict, column
     columns = len(trophies)
     
     CARD_W = 115
-    CARD_H = 165
-    GAP = 12
+    CARD_H = 140
+    GAP = 18
     PAD = 24
     HDR_H = 62
     
@@ -124,8 +124,8 @@ def generate_trophies_display(username: str, trophies: list, theme: dict, column
         <circle cx="{cx}" cy="118" r="14" fill="{lbg}"/>
         <text x="{cx}" y="124" text-anchor="middle" font-family="'Bebas Neue', sans-serif" font-size="16" fill="{bdr}" letter-spacing="1" filter="url(#rankGlow)">{trophy['rank']}</text>
         
-        <text x="{cx}" y="148" text-anchor="middle" font-family="'Inter', sans-serif" font-size="10" font-weight="800" fill="{level_color}">{level}</text>
-        <text x="{cx}" y="160" text-anchor="middle" font-family="'Inter', sans-serif" font-size="7" font-weight="500" fill="{lfg}" opacity="0.95">{trophy['title']}</text>
+        <text x="{cx}" y="155" text-anchor="middle" font-family="'Inter', sans-serif" font-size="10" font-weight="800" fill="{level_color}">{level}</text>
+        <text x="{cx}" y="165" text-anchor="middle" font-family="'Inter', sans-serif" font-size="7" font-weight="500" fill="{lfg}" opacity="0.95">{trophy['title']}</text>
         
         <line x1="12" y1="{CARD_H - 3}" x2="{CARD_W - 12}" y2="{CARD_H - 3}" stroke="{bdr}" stroke-width="0.75" opacity="0.2"/>
     </g>
