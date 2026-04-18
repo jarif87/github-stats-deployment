@@ -62,7 +62,8 @@ async def github_stats(
     username: str = Query(...),
     theme: str = Query("midnight", enum=list(THEMES.keys())),
     hide: str = Query(""),
-    v: str = Query(None)
+    v: str = Query(None),
+    t: str = Query(None)
 ):
     try:
         user_stats = client.get_user_stats(username)
@@ -87,7 +88,8 @@ async def languages_chart(
     layout: str = Query("horizontal", enum=["vertical", "horizontal"]),
     top: int = Query(10, ge=3, le=15),
     animated: bool = Query(True),
-    v: str = Query(None)
+    v: str = Query(None),
+    t: str = Query(None)
 ):
     try:
         all_languages = client.get_top_languages(username, include_all=True)
@@ -112,7 +114,8 @@ async def trophies(
     theme: str = Query("midnight", enum=list(THEMES.keys())),
     columns: int = Query(6, ge=2, le=8),
     style: str = Query("modern", enum=["modern", "classic", "minimal"]),
-    v: str = Query(None)
+    v: str = Query(None),
+    t: str = Query(None)
 ):
     try:
         stats = client.get_user_stats(username)
@@ -121,7 +124,9 @@ async def trophies(
         
         svg = generate_trophies_display(username, trophies_data, selected_theme, columns, style)
         
-        return Response(content=svg, media_type="image/svg+xml")
+        return Response(content=svg, media_type="image/svg+xml", headers={
+            "Cache-Control": "public, max-age=3600"
+        })
         
     except Exception as e:
         raise HTTPException(500, detail=str(e))
@@ -129,7 +134,7 @@ async def trophies(
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(
     request: Request,
-    username: str = Query(...), 
+    username: str = Query(...),
     theme: str = Query("midnight", enum=list(THEMES.keys()))
 ):
     selected_theme = get_theme(theme)
