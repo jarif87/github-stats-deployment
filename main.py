@@ -14,9 +14,32 @@ from config import Config
 from themes import get_theme, THEMES
 from svg_generators import generate_stats_card, generate_languages_chart, generate_trophies_display
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 load_dotenv()
-app = FastAPI(title=Config.API_TITLE, description=Config.API_DESCRIPTION, version=Config.API_VERSION)
+
+def keep_alive():
+    time.sleep(60)
+    while True:
+        try:
+            requests.get("https://github-stats-deployment.onrender.com/themes", timeout=10)
+            print("✓ Keep-alive ping sent")
+        except Exception as e:
+            print(f"✗ Keep-alive ping failed: {e}")
+        time.sleep(5)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    threading.Thread(target=keep_alive, daemon=True).start()
+    print("✓ Keep-alive thread started")
+    yield
+
+app = FastAPI(
+    title=Config.API_TITLE,
+    description=Config.API_DESCRIPTION,
+    version=Config.API_VERSION,
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,21 +57,6 @@ Config.validate()
 
 BASE_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
-def keep_alive():
-    time.sleep(60)
-    while True:
-        try:
-            time.sleep(30)
-            requests.get("https://github-stats-deployment.onrender.com/themes", timeout=10)
-            print("✓ Keep-alive ping sent")
-        except Exception as e:
-            print(f"✗ Keep-alive ping failed: {e}")
-
-@app.on_event("startup")
-async def startup_event():
-    threading.Thread(target=keep_alive, daemon=True).start()
-    print("✓ Keep-alive thread started")
 
 @app.get("/")
 async def root():
