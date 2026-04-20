@@ -19,19 +19,24 @@ from contextlib import asynccontextmanager
 load_dotenv()
 
 def keep_alive():
-    time.sleep(60)
+    # Wait 30s for server to fully start first
+    time.sleep(30)
     while True:
         try:
-            requests.get("https://github-stats-deployment.onrender.com/themes", timeout=10)
+            requests.get(
+                "https://github-stats-deployment.onrender.com/health",
+                timeout=10
+            )
             print("✓ Keep-alive ping sent")
         except Exception as e:
             print(f"✗ Keep-alive ping failed: {e}")
-        time.sleep(5)
+        # Ping every 4 minutes (240s) — well under Render's 15min sleep threshold
+        time.sleep(240)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     threading.Thread(target=keep_alive, daemon=True).start()
-    print("✓ Keep-alive thread started")
+    print("✓ Keep-alive thread started (pinging every 4 minutes)")
     yield
 
 app = FastAPI(
@@ -58,6 +63,13 @@ Config.validate()
 BASE_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+
+@app.get("/health")
+async def health():
+    """Lightweight health check endpoint for keep-alive pings"""
+    return {"status": "ok"}
+
+
 @app.get("/")
 async def root():
     return {
@@ -83,6 +95,7 @@ async def root():
         ]
     }
 
+
 @app.get("/stats", response_class=Response)
 async def github_stats(
     username: str = Query(...),
@@ -103,6 +116,7 @@ async def github_stats(
     except Exception as e:
         from svg_generators.stats_card import generate_error_svg
         return Response(content=generate_error_svg(str(e)), media_type="image/svg+xml")
+
 
 @app.get("/languages", response_class=Response)
 async def languages_chart(
@@ -128,6 +142,7 @@ async def languages_chart(
         </svg>'''
         return Response(content=error_svg, media_type="image/svg+xml")
 
+
 @app.get("/trophies", response_class=Response)
 async def trophies(
     username: str = Query(...),
@@ -147,6 +162,7 @@ async def trophies(
         })
     except Exception as e:
         raise HTTPException(500, detail=str(e))
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(
@@ -168,6 +184,7 @@ async def dashboard(
         "border": selected_theme["border"]
     })
 
+
 @app.get("/api/dashboard-data")
 async def dashboard_data(username: str = Query(...)):
     try:
@@ -178,14 +195,17 @@ async def dashboard_data(username: str = Query(...)):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.get("/themes")
 async def list_themes():
     return {"themes": list(THEMES.keys()), "details": THEMES}
+
 
 @app.get("/clear-cache")
 async def clear_cache(username: str = Query(None)):
     client.clear_cache(username)
     return {"message": f"Cache cleared for {username if username else 'all users'}"}
+
 
 if __name__ == "__main__":
     import uvicorn
