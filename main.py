@@ -19,18 +19,15 @@ from contextlib import asynccontextmanager
 load_dotenv()
 
 def keep_alive():
-    # Wait 30s for server to fully start first
-    time.sleep(30)
     while True:
         try:
             requests.get(
                 "https://github-stats-deployment.onrender.com/health",
                 timeout=10
             )
-            print("✓ Keep-alive ping sent")
+            print("Keep-alive ping sent")
         except Exception as e:
-            print(f"✗ Keep-alive ping failed: {e}")
-        # Ping every 4 minutes (240s) — well under Render's 15min sleep threshold
+            print(f"Keep-alive ping failed: {e}")
         time.sleep(240)
 
 @asynccontextmanager
