@@ -63,9 +63,23 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/health")
 async def health():
-    """Lightweight health check endpoint for keep-alive pings"""
-    return {"status": "ok"}
-
+    import time
+    start = time.time()
+    status = {
+        "status": "ok",
+        "github_token": bool(GITHUB_TOKEN),
+        "github_api": False,
+        "latency_ms": None
+    }
+    try:
+        test = client.get_user_stats("jarif87")
+        status["github_api"] = bool(test)
+    except Exception as e:
+        status["github_api"] = False
+        status["github_error"] = str(e)[:100]
+        status["status"] = "degraded"
+    status["latency_ms"] = round((time.time() - start) * 1000)
+    return status
 
 @app.get("/")
 async def root():
